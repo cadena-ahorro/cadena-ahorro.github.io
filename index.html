@@ -81,6 +81,7 @@
   <div id="app" class="oculto">
     <p class="sub" id="cadena"></p>
     <h1 id="saludo"></h1>
+    <p class="sub" id="actualizando"></p>
 
     <div id="vencidas"></div>
 
@@ -143,6 +144,14 @@
       e.appendChild(typeof h === 'string' ? document.createTextNode(h) : h);
     });
     return e;
+  }
+
+  /** Última respuesta guardada en el celular, para mostrarla al instante mientras llega la nueva. */
+  function guardado(clave) {
+    try { var v = localStorage.getItem('cadena:' + clave); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+  }
+  function guardar(clave, valor) {
+    try { localStorage.setItem('cadena:' + clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento: no pasa nada */ }
   }
 
   /** Parámetro de la dirección (?t=... o ?admin=...). */
@@ -231,15 +240,34 @@
       document.getElementById('cargando').textContent = 'Abre el link completo que te envió la administradora.';
       return Promise.resolve();
     }
+    var clave = 'p:' + TOKEN;
+    var aviso = document.getElementById('actualizando');
+    // Primera carga: mostrar al instante lo último que se vio en este celular, mientras llega lo nuevo
+    if (!datos) {
+      var viejo = guardado(clave);
+      if (viejo) {
+        datos = viejo;
+        pintar();
+        mostrarApp();
+        aviso.textContent = 'Actualizando…';
+      }
+    }
     return llamar('apiParticipante', TOKEN).then(function (d) {
       datos = d;
+      guardar(clave, d);
       document.title = d.cadena;
       pintar();
-      document.getElementById('cargando').classList.add('oculto');
-      document.getElementById('app').classList.remove('oculto');
+      mostrarApp();
+      aviso.textContent = '';
     }).catch(function (e) {
-      document.getElementById('cargando').textContent = mensajeError(e);
+      if (datos) aviso.textContent = 'No se pudo actualizar: ' + mensajeError(e);
+      else document.getElementById('cargando').textContent = mensajeError(e);
     });
+  }
+
+  function mostrarApp() {
+    document.getElementById('cargando').classList.add('oculto');
+    document.getElementById('app').classList.remove('oculto');
   }
 
   function quincena(fecha) {

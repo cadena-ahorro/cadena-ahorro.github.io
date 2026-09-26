@@ -99,6 +99,7 @@
         <p class="sub" id="cadena"></p>
         <h1 id="titulo"></h1>
         <p class="sub" id="plazo"></p>
+        <p class="sub" id="actualizando"></p>
       </div>
       <div class="fila-flex">
         <button class="chico" id="ant" aria-label="Quincena anterior">‹</button>
@@ -168,6 +169,14 @@
       e.appendChild(typeof h === 'string' ? document.createTextNode(h) : h);
     });
     return e;
+  }
+
+  /** Última respuesta guardada en el celular, para mostrarla al instante mientras llega la nueva. */
+  function guardado(clave) {
+    try { var v = localStorage.getItem('cadena:' + clave); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+  }
+  function guardar(clave, valor) {
+    try { localStorage.setItem('cadena:' + clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento: no pasa nada */ }
   }
 
   /** Parámetro de la dirección (?t=... o ?admin=...). */
@@ -255,16 +264,36 @@
   var ORDEN = ['por_revisar', 'vencido', 'parcial', 'pendiente', 'futura', 'receptor_sin_cuota', 'tarde', 'a_tiempo', 'antes'];
   var AL_DIA = { a_tiempo: 1, tarde: 1 };
 
-  function cargar(fecha) {
+  /** fresco = true después de aprobar, rechazar o registrar: no mostrar la copia vieja ni un instante. */
+  function cargar(fecha, fresco) {
+    var clave = 't:' + (fecha || 'actual');
+    var aviso = document.getElementById('actualizando');
+    if (!fresco) {
+      var viejo = guardado(clave);
+      if (viejo) {
+        d = viejo;
+        pintar();
+        mostrarApp();
+      }
+    }
+    aviso.textContent = 'Actualizando…';
     return llamar('apiTablero', CLAVE, fecha || null).then(function (r) {
       d = r;
+      guardar(clave, r);
+      guardar('t:' + r.quincena.fecha, r);
       document.title = 'Tablero · ' + r.cadena;
       pintar();
-      document.getElementById('cargando').classList.add('oculto');
-      document.getElementById('app').classList.remove('oculto');
+      mostrarApp();
+      aviso.textContent = '';
     }).catch(function (e) {
-      document.getElementById('cargando').textContent = mensajeError(e);
+      if (d) aviso.textContent = 'No se pudo actualizar: ' + mensajeError(e);
+      else document.getElementById('cargando').textContent = mensajeError(e);
     });
+  }
+
+  function mostrarApp() {
+    document.getElementById('cargando').classList.add('oculto');
+    document.getElementById('app').classList.remove('oculto');
   }
 
   function pintar() {
@@ -428,7 +457,7 @@
         return function () {
           estado.textContent = 'Guardando…';
           llamar('apiRevisar', CLAVE, p.id, accion, monto.value, nota.value)
-            .then(function () { return cargar(d.quincena.fecha); })
+            .then(function () { return cargar(d.quincena.fecha, true); })
             .catch(function (e) { estado.textContent = mensajeError(e); });
         };
       };
@@ -440,7 +469,7 @@
       if (p.tieneArchivo) {
         botones.push(el('button', { clase: 'chico', onclick: function () {
           estado.textContent = 'Leyendo con IA…';
-          llamar('apiReprocesar', CLAVE, p.id).then(function () { return cargar(d.quincena.fecha); })
+          llamar('apiReprocesar', CLAVE, p.id).then(function () { return cargar(d.quincena.fecha, true); })
             .catch(function (e) { estado.textContent = mensajeError(e); });
         } }, 'Leer de nuevo con IA'));
       }
@@ -459,7 +488,7 @@
       el('div', { clase: 'fila-flex' }, [monto, nota, el('button', { clase: 'chico primario', onclick: function () {
         estado.textContent = 'Guardando…';
         llamar('apiPagoManual', CLAVE, f.id, d.quincena.fecha, monto.value, nota.value)
-          .then(function () { abiertos[f.id + ':manual'] = false; return cargar(d.quincena.fecha); })
+          .then(function () { abiertos[f.id + ':manual'] = false; return cargar(d.quincena.fecha, true); })
           .catch(function (e) { estado.textContent = mensajeError(e); });
       } }, 'Guardar'), estado])
     ]);
@@ -542,7 +571,7 @@
   document.getElementById('sel-quincena').addEventListener('change', function (e) { abiertos = {}; cargar(e.target.value); });
   document.getElementById('ant').addEventListener('click', function () { mover(-1); });
   document.getElementById('sig').addEventListener('click', function () { mover(1); });
-  document.getElementById('refrescar').addEventListener('click', function () { cargar(d.quincena.fecha); });
+  document.getElementById('refrescar').addEventListener('click', function () { cargar(d.quincena.fecha, true); });
   document.getElementById('ver-estad').addEventListener('click', verEstadisticas);
   document.getElementById('ver-links').addEventListener('click', verLinks);
   [].forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {

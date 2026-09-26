@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Cadena</title>
+  <script>window.API_URL = "https://script.google.com/macros/s/AKfycbw5CH6Tbu7RbZ2pXpdJJShhqbzZXe0TMK2D8iSUTnLjI5v26IWVrPjV9qklffGbUGT35Q/exec";</script>
+  <style>
+  :root {
+    --fondo: #f6f5f1; --tarjeta: #ffffff; --suave: #f0efea; --texto: #1f1e1b; --texto2: #5f5e5a; --texto3: #8a8983;
+    --borde: rgba(0,0,0,.12); --acento: #185fa5; --acento-bg: #e6f1fb;
+    --ok: #3b6d11; --ok-bg: #eaf3de; --warn: #854f0b; --warn-bg: #faeeda; --mal: #a32d2d; --mal-bg: #fcebeb;
+    --lila: #534ab7; --lila-bg: #eeedfe; --naranja: #993c1d; --naranja-bg: #faece7; --gris-bg: #ecebe6;
+    --radio: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #161614; --tarjeta: #22221f; --suave: #2c2c29; --texto: #f1efe8; --texto2: #b4b2a9; --texto3: #888780;
+      --borde: rgba(255,255,255,.14); --acento: #85b7eb; --acento-bg: #0c447c;
+      --ok: #c0dd97; --ok-bg: #27500a; --warn: #fac775; --warn-bg: #633806; --mal: #f7c1c1; --mal-bg: #791f1f;
+      --lila: #cecbf6; --lila-bg: #3c3489; --naranja: #f5c4b3; --naranja-bg: #712b13; --gris-bg: #3a3a37;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 4px 0 2px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
+  p { margin: 0 0 8px; }
+  .sub { color: var(--texto2); font-size: 13px; }
+  .tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+  .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 12px 0; }
+  .metrica { background: var(--suave); border-radius: var(--radio); padding: 10px 12px; }
+  .metrica .et { font-size: 12px; color: var(--texto2); }
+  .metrica .val { font-size: 20px; font-weight: 600; }
+  .metrica .det { font-size: 12px; color: var(--texto3); }
+  button, .boton { font: inherit; font-size: 14px; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto);
+    border-radius: var(--radio); padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
+  button:hover, .boton:hover { background: var(--suave); }
+  button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
+  @media (prefers-color-scheme: dark) { button.primario { color: #042c53; } }
+  button:disabled { opacity: .6; cursor: default; }
+  button.chico, .boton.chico { font-size: 12px; padding: 4px 10px; }
+  .ancho { width: 100%; }
+  input, select, textarea { font: inherit; color: var(--texto); background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 8px 10px; }
+  .fila-flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .etiqueta { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .e-a_tiempo { background: var(--ok-bg); color: var(--ok); }
+  .e-tarde { background: var(--lila-bg); color: var(--lila); }
+  .e-por_revisar, .e-procesando { background: var(--warn-bg); color: var(--warn); }
+  .e-parcial { background: var(--naranja-bg); color: var(--naranja); }
+  .e-vencido, .e-rechazado { background: var(--mal-bg); color: var(--mal); }
+  .e-receptor_sin_cuota, .e-receptor { background: var(--acento-bg); color: var(--acento); }
+  .e-pendiente, .e-futura { background: var(--suave); color: var(--texto2); }
+  .e-antes { background: var(--gris-bg); color: var(--texto3); }
+  .e-verificado_ia, .e-verificado_admin { background: var(--ok-bg); color: var(--ok); }
+  .punto { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .p-a_tiempo { background: #639922; } .p-tarde { background: #7f77dd; } .p-por_revisar { background: #ef9f27; }
+  .p-parcial { background: #d85a30; } .p-vencido { background: #e24b4a; } .p-receptor_sin_cuota { background: #378add; }
+  .p-pendiente, .p-futura { border: 1.5px solid var(--texto3); } .p-antes { background: var(--gris-bg); }
+  .aviso { border-radius: var(--radio); padding: 10px 12px; font-size: 14px; margin: 10px 0; }
+  .aviso.warn { background: var(--warn-bg); color: var(--warn); }
+  .aviso.mal { background: var(--mal-bg); color: var(--mal); }
+  .aviso.ok { background: var(--ok-bg); color: var(--ok); }
+  .aviso.info { background: var(--acento-bg); color: var(--acento); }
+  .cargando { color: var(--texto2); padding: 40px 0; text-align: center; }
+  .oculto { display: none !important; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--borde); vertical-align: top; }
+  th { color: var(--texto2); font-weight: 500; border-top: none; }
+  .num { text-align: right; white-space: nowrap; }
+  img.recibo { max-width: 100%; max-height: 520px; border-radius: 8px; border: 1px solid var(--borde); display: block; }
+</style>
+
+</head>
+<body>
+<main>
+  <div id="cargando" class="cargando">Cargando…</div>
+  <div id="app" class="oculto">
+    <p class="sub" id="cadena"></p>
+    <h1 id="saludo"></h1>
+
+    <div id="vencidas"></div>
+
+    <section class="tarjeta" id="tarjeta-actual"></section>
+
+    <section class="tarjeta">
+      <h2>Subir recibo</h2>
+      <label class="sub" for="quincena">¿De qué quincena es el pago?</label>
+      <select id="quincena" class="ancho" style="margin:4px 0 12px"></select>
+
+      <input id="foto-camara" type="file" accept="image/*" capture="environment" class="oculto">
+      <input id="foto-galeria" type="file" accept="image/*,application/pdf" class="oculto">
+      <div class="fila-flex" id="botones-foto">
+        <button class="primario" style="flex:1" onclick="document.getElementById('foto-camara').click()">Tomar foto del recibo</button>
+        <button style="flex:1" onclick="document.getElementById('foto-galeria').click()">Subir desde galería o PDF</button>
+      </div>
+
+      <div id="vista" class="oculto" style="margin-top:12px">
+        <img id="vista-img" class="recibo" alt="Vista previa del recibo">
+        <p id="vista-pdf" class="sub oculto"></p>
+        <div class="fila-flex" style="margin-top:10px">
+          <button class="primario" style="flex:1" id="enviar">Enviar recibo</button>
+          <button id="cancelar">Cambiar</button>
+        </div>
+      </div>
+      <div id="resultado"></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Tus pagos</h2>
+      <div id="historial"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  function plata(n) {
+    return '$' + Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function fechaCorta(s) {
+    if (!s) return '';
+    var p = String(s).slice(0, 10).split('-');
+    return Number(p[2]) + ' ' + MESES[Number(p[1]) - 1];
+  }
+
+  /** Crea elementos sin usar innerHTML con datos (evita inyección de HTML). */
+  function el(tag, attrs, hijos) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === 'texto') e.textContent = attrs[k];
+      else if (k === 'clase') e.className = attrs[k];
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    });
+    [].concat(hijos || []).forEach(function (h) {
+      if (h === null || h === undefined || h === false) return;
+      e.appendChild(typeof h === 'string' ? document.createTextNode(h) : h);
+    });
+    return e;
+  }
+
+  /** Parámetro de la dirección (?t=... o ?admin=...). */
+  function parametro(nombre) {
+    var m = location.search.match(new RegExp('[?&]' + nombre + '=([^&#]+)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  /**
+   * Llama una función del motor. Publicada fuera de Google (window.API_URL) usa fetch,
+   * que no envía la sesión de Google del celular; dentro de Google usa google.script.run.
+   */
+  function llamar(fn) {
+    var args = [].slice.call(arguments, 1);
+    if (window.API_URL) {
+      return fetch(window.API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }) })
+        .catch(function () { throw new Error('No hay conexión. Revisa tu internet e intenta de nuevo'); })
+        .then(function (r) {
+          if (!r.ok) throw new Error('El sistema no respondió (' + r.status + '). Intenta de nuevo');
+          return r.json();
+        })
+        .then(function (j) {
+          if (!j.ok) throw new Error(j.error);
+          return j.data;
+        });
+    }
+    return new Promise(function (ok, mal) {
+      var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { mal(e); });
+      r[fn].apply(r, args);
+    });
+  }
+
+  function mensajeError(e) {
+    var m = (e && e.message) || String(e);
+    return m.replace(/^Exception: /, '').replace(/^Error: /, '');
+  }
+
+  /** Reduce la foto a JPEG de máx. 1600 px (sube rápido y la IA la lee igual de bien). Los PDF pasan tal cual. */
+  function prepararArchivo(archivo) {
+    return new Promise(function (ok, mal) {
+      if (archivo.type === 'application/pdf') {
+        if (archivo.size > 10 * 1024 * 1024) return mal(new Error('El PDF pesa más de 10 MB.'));
+        var lector = new FileReader();
+        lector.onload = function () { ok({ datos: String(lector.result).split(',')[1], tipo: 'application/pdf', nombre: archivo.name }); };
+        lector.onerror = function () { mal(new Error('No se pudo leer el PDF.')); };
+        return lector.readAsDataURL(archivo);
+      }
+      var url = URL.createObjectURL(archivo);
+      var img = new Image();
+      img.onload = function () {
+        var max = 1600;
+        var escala = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * escala);
+        c.height = Math.round(img.naturalHeight * escala);
+        var cx = c.getContext('2d');
+        cx.fillStyle = '#ffffff';
+        cx.fillRect(0, 0, c.width, c.height);
+        cx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var dataUrl = c.toDataURL('image/jpeg', 0.85);
+        ok({ datos: dataUrl.split(',')[1], tipo: 'image/jpeg', nombre: 'recibo.jpg', vista: dataUrl });
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        mal(new Error('No se pudo abrir esa imagen. Prueba con una captura de pantalla del comprobante.'));
+      };
+      img.src = url;
+    });
+  }
+</script>
+
+<script>
+  var TOKEN = document.body.getAttribute('data-k') || parametro('t');
+  var datos = null;
+  var archivoListo = null;
+
+  var TEXTO_ESTADO = {
+    a_tiempo: 'Pagado', tarde: 'Pagado tarde', por_revisar: 'Recibido, en revisión', parcial: 'Pago parcial',
+    pendiente: 'Pendiente', futura: 'Próximo', vencido: 'Vencido', receptor_sin_cuota: 'Te tocó recibir', antes: '—'
+  };
+  var PAGADO = { a_tiempo: 1, tarde: 1, por_revisar: 1 };
+
+  function cargar() {
+    if (!TOKEN) {
+      document.getElementById('cargando').textContent = 'Abre el link completo que te envió la administradora.';
+      return Promise.resolve();
+    }
+    return llamar('apiParticipante', TOKEN).then(function (d) {
+      datos = d;
+      document.title = d.cadena;
+      pintar();
+      document.getElementById('cargando').classList.add('oculto');
+      document.getElementById('app').classList.remove('oculto');
+    }).catch(function (e) {
+      document.getElementById('cargando').textContent = mensajeError(e);
+    });
+  }
+
+  function quincena(fecha) {
+    return datos.quincenas.filter(function (q) { return q.fecha === fecha; })[0];
+  }
+
+  function pintar() {
+    document.getElementById('cadena').textContent = datos.cadena;
+    document.getElementById('saludo').textContent = 'Hola, ' + datos.nombre.split(' ')[0].charAt(0) +
+      datos.nombre.split(' ')[0].slice(1).toLowerCase();
+
+    var actual = quincena(datos.actual);
+    var t = document.getElementById('tarjeta-actual');
+    t.innerHTML = '';
+    if (actual) {
+      var abierto = datos.hoy >= actual.plazoInicio;
+      t.appendChild(el('p', { clase: 'sub', texto: 'Quincena del ' + fechaCorta(actual.fecha) }));
+      t.appendChild(el('div', { clase: 'fila-flex', style: 'justify-content:space-between' }, [
+        el('div', {}, [
+          el('div', { style: 'font-size:26px;font-weight:600', texto: plata(actual.esperado) }),
+          el('div', { clase: 'sub', texto: (abierto ? 'Plazo hasta el ' : 'Pagas entre el ') +
+            (abierto ? fechaCorta(actual.plazoFin) : fechaCorta(actual.plazoInicio) + ' y el ' + fechaCorta(actual.plazoFin)) })
+        ]),
+        el('span', { clase: 'etiqueta e-' + actual.estado, texto: TEXTO_ESTADO[actual.estado] })
+      ]));
+      if (actual.maximo > actual.esperado) {
+        t.appendChild(el('p', { clase: 'sub', style: 'margin-top:6px',
+          texto: 'Tu puesto es compartido: pagas tu mitad o el puesto completo si así lo acordaron.' }));
+      }
+      if (actual.pagado > 0 && !PAGADO[actual.estado]) {
+        t.appendChild(el('p', { clase: 'sub', texto: 'Llevas ' + plata(actual.pagado) + ' en esta quincena.' }));
+      }
+      if (actual.esReceptor) {
+        t.appendChild(el('div', { clase: 'aviso info', texto: 'Esta quincena te toca recibir. Si consignas tu propia cuota, sube también ese recibo.' }));
+      } else if (actual.receptor) {
+        var r = actual.receptor;
+        t.appendChild(el('div', { style: 'border-top:1px solid var(--borde);margin-top:10px;padding-top:10px' }, [
+          el('p', { clase: 'sub', texto: 'Consigna a' }),
+          el('div', { style: 'font-weight:600', texto: r.titular }),
+          el('div', { clase: 'fila-flex' }, [
+            el('span', { texto: [r.banco, r.cuenta].filter(Boolean).join(' · ') || 'Pide los datos a la administradora' }),
+            r.cuenta ? el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar número') : null
+          ])
+        ]));
+      }
+    }
+
+    // Quincenas vencidas sin pagar
+    var vencidas = datos.quincenas.filter(function (q) { return q.estado === 'vencido' || (q.estado === 'parcial' && datos.hoy > q.plazoFin); });
+    var v = document.getElementById('vencidas');
+    v.innerHTML = '';
+    if (vencidas.length) {
+      v.appendChild(el('div', { clase: 'aviso mal', texto: 'Tienes ' + (vencidas.length === 1 ? 'una quincena vencida' : vencidas.length + ' quincenas vencidas') +
+        ' sin recibo: ' + vencidas.map(function (q) { return fechaCorta(q.fecha); }).join(', ') + '. Puedes subir el recibo abajo.' }));
+    }
+
+    // Opciones del selector: la actual y las anteriores que no estén pagadas
+    var sel = document.getElementById('quincena');
+    sel.innerHTML = '';
+    datos.quincenas.filter(function (q) {
+      return q.fecha === datos.actual || (q.fecha < datos.actual && !PAGADO[q.estado] && q.estado !== 'antes');
+    }).reverse().forEach(function (q) {
+      var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.fecha) + (q.fecha === datos.actual ? ' (actual)' : ' — ' + TEXTO_ESTADO[q.estado]) });
+      if (q.fecha === datos.actual) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    // Historial
+    var hist = document.getElementById('historial');
+    hist.innerHTML = '';
+    var filas = datos.quincenas.filter(function (q) { return q.estado !== 'antes' && q.fecha <= datos.actual; }).reverse();
+    if (!filas.length) {
+      hist.appendChild(el('p', { clase: 'sub', texto: 'Aún no hay pagos registrados.' }));
+    } else {
+      var tabla = el('table', {}, [el('tr', {}, [el('th', { texto: 'Quincena' }), el('th', { clase: 'num', texto: 'Pagado' }), el('th', { texto: 'Estado' })])]);
+      filas.forEach(function (q) {
+        tabla.appendChild(el('tr', {}, [
+          el('td', { texto: fechaCorta(q.fecha) }),
+          el('td', { clase: 'num', texto: plata(q.pagado) + ' de ' + plata(q.esperado) }),
+          el('td', {}, el('span', { clase: 'etiqueta e-' + q.estado, texto: TEXTO_ESTADO[q.estado] }))
+        ]));
+      });
+      hist.appendChild(tabla);
+    }
+  }
+
+  function copiar(texto, boton) {
+    navigator.clipboard.writeText(texto).then(function () {
+      var antes = boton.textContent;
+      boton.textContent = 'Copiado';
+      setTimeout(function () { boton.textContent = antes; }, 1500);
+    });
+  }
+
+  function elegirArchivo(ev) {
+    var f = ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    var res = document.getElementById('resultado');
+    res.innerHTML = '';
+    prepararArchivo(f).then(function (a) {
+      archivoListo = a;
+      document.getElementById('botones-foto').classList.add('oculto');
+      document.getElementById('vista').classList.remove('oculto');
+      var img = document.getElementById('vista-img');
+      var pdf = document.getElementById('vista-pdf');
+      if (a.vista) { img.src = a.vista; img.classList.remove('oculto'); pdf.classList.add('oculto'); }
+      else { img.classList.add('oculto'); pdf.textContent = 'PDF: ' + f.name; pdf.classList.remove('oculto'); }
+    }).catch(function (e) {
+      res.appendChild(el('div', { clase: 'aviso mal', texto: mensajeError(e) }));
+    });
+  }
+
+  function reiniciarSubida() {
+    archivoListo = null;
+    document.getElementById('vista').classList.add('oculto');
+    document.getElementById('botones-foto').classList.remove('oculto');
+  }
+
+  function enviar() {
+    if (!archivoListo) return;
+    var boton = document.getElementById('enviar');
+    var res = document.getElementById('resultado');
+    var q = document.getElementById('quincena').value;
+    boton.disabled = true;
+    document.getElementById('cancelar').disabled = true;
+    res.innerHTML = '';
+    res.appendChild(el('div', { clase: 'aviso info', texto: 'Subiendo el recibo…' }));
+    var subido = false;
+    llamar('apiSubirRecibo', TOKEN, q, { datos: archivoListo.datos, tipo: archivoListo.tipo, nombre: archivoListo.nombre })
+      .then(function (r) {
+        subido = true;
+        res.innerHTML = '';
+        res.appendChild(el('div', { clase: 'aviso info', texto: 'Recibo guardado. Verificándolo…' }));
+        return llamar('apiProcesarRecibo', TOKEN, r.idPago);
+      })
+      .then(function (r) {
+        res.innerHTML = '';
+        if (r.estado === 'verificado_ia') {
+          res.appendChild(el('div', { clase: 'aviso ok', texto: 'Listo: tu recibo por ' + plata(r.monto) + ' quedó verificado. ¡Gracias!' }));
+        } else {
+          res.appendChild(el('div', { clase: 'aviso warn', texto: 'Recibimos tu recibo. La administradora lo va a revisar.' }));
+        }
+        reiniciarSubida();
+        return cargar();
+      })
+      .catch(function (e) {
+        res.innerHTML = '';
+        if (subido) {
+          // El archivo ya quedó guardado: no invitar a reenviarlo (quedaría duplicado)
+          res.appendChild(el('div', { clase: 'aviso warn', texto: 'Recibimos tu recibo. La administradora lo va a revisar.' }));
+          reiniciarSubida();
+          return cargar();
+        }
+        res.appendChild(el('div', { clase: 'aviso mal', texto: 'No se pudo enviar: ' + mensajeError(e) + '. Intenta de nuevo.' }));
+      })
+      .then(function () {
+        boton.disabled = false;
+        document.getElementById('cancelar').disabled = false;
+      });
+  }
+
+  document.getElementById('foto-camara').addEventListener('change', elegirArchivo);
+  document.getElementById('foto-galeria').addEventListener('change', elegirArchivo);
+  document.getElementById('cancelar').addEventListener('click', reiniciarSubida);
+  document.getElementById('enviar').addEventListener('click', enviar);
+  cargar();
+</script>
+</body>
+</html>

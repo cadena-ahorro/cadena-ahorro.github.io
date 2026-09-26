@@ -130,6 +130,14 @@
       </div>
       <div id="estadisticas"></div>
     </div>
+
+    <div class="tarjeta">
+      <div class="fila-flex" style="justify-content:space-between">
+        <h2 style="margin:0">Links personales</h2>
+        <button class="chico" id="ver-links">Ver</button>
+      </div>
+      <div id="links"></div>
+    </div>
   </div>
 </main>
 
@@ -495,6 +503,37 @@
     }).catch(function (e) { cont.textContent = mensajeError(e); });
   }
 
+  function mensajeBienvenida(f) {
+    var nombre = f.nombre.split(' ')[0];
+    nombre = nombre.charAt(0) + nombre.slice(1).toLowerCase();
+    return 'Hola ' + nombre + '. Desde ahora los recibos de la cadena se suben por este link personal ' +
+      '(es solo tuyo, no lo compartas): ' + f.link + '\n\nAhí ves cuánto pagar, a quién consignar y hasta cuándo, ' +
+      'y puedes tomarle la foto al recibo directamente. Guárdalo para usarlo cada quincena.';
+  }
+
+  function verLinks() {
+    var cont = document.getElementById('links');
+    var boton = document.getElementById('ver-links');
+    if (cont.childNodes.length) { cont.innerHTML = ''; boton.textContent = 'Ver'; return; }
+    boton.textContent = 'Ocultar';
+    cont.appendChild(el('p', { clase: 'sub', style: 'margin-top:8px', texto: 'Envía a cada persona su link una sola vez. El link sirve para toda la cadena.' }));
+    d.filas.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre); }).forEach(function (f) {
+      var copiar = el('button', { clase: 'chico', onclick: function () {
+        navigator.clipboard.writeText(f.link).then(function () {
+          copiar.textContent = 'Copiado';
+          setTimeout(function () { copiar.textContent = 'Copiar link'; }, 1500);
+        });
+      } }, 'Copiar link');
+      cont.appendChild(el('div', { clase: 'persona' }, el('div', { clase: 'cab' }, [
+        el('div', { clase: 'nom', texto: f.nombre }),
+        f.celular
+          ? el('a', { clase: 'boton chico', target: '_blank', href: 'https://wa.me/' + f.celular + '?text=' + encodeURIComponent(mensajeBienvenida(f)) }, 'Enviar por WhatsApp')
+          : el('span', { clase: 'sub', texto: 'sin celular' }),
+        copiar
+      ])));
+    });
+  }
+
   function mover(delta) {
     var i = d.quincenas.map(function (x) { return x.fecha; }).indexOf(d.quincena.fecha) + delta;
     if (i >= 0 && i < d.quincenas.length) { abiertos = {}; cargar(d.quincenas[i].fecha); }
@@ -505,6 +544,7 @@
   document.getElementById('sig').addEventListener('click', function () { mover(1); });
   document.getElementById('refrescar').addEventListener('click', function () { cargar(d.quincena.fecha); });
   document.getElementById('ver-estad').addEventListener('click', verEstadisticas);
+  document.getElementById('ver-links').addEventListener('click', verLinks);
   [].forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
     b.addEventListener('click', function () {
       filtro = b.getAttribute('data-filtro');

@@ -327,14 +327,14 @@
   function pintar() {
     var q = d.quincena;
     document.getElementById('cadena').textContent = d.cadena + ' · hoy ' + fechaCorta(d.hoy);
-    document.getElementById('titulo').textContent = 'Quincena del ' + fechaCorta(q.fecha);
+    document.getElementById('titulo').textContent = 'Quincena #' + q.numero + ' · ' + fechaCorta(q.plazoInicio);
     document.getElementById('plazo').textContent = 'Plazo de pago: ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) +
       (d.hoy < q.plazoInicio ? ' · aún no abre' : d.hoy > q.plazoFin ? ' · cerrado' : ' · abierto');
 
     var sel = document.getElementById('sel-quincena');
     sel.innerHTML = '';
     d.quincenas.forEach(function (x) {
-      var o = el('option', { value: x.fecha, texto: x.numero + '. ' + fechaCorta(x.fecha) });
+      var o = el('option', { value: x.fecha, texto: '#' + x.numero + ' – ' + fechaCorta(x.plazoInicio || x.fecha) });
       if (x.fecha === q.fecha) o.selected = true;
       sel.appendChild(o);
     });
@@ -403,7 +403,7 @@
       d.hoy < q.plazoInicio ? 'El plazo es del ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) + '.' :
       'El plazo es hasta el ' + fechaCorta(q.plazoFin) + '.';
     return 'Hola ' + nombre + ', por favor recuerda subir el soporte de pago de la cadena de la quincena del ' +
-      fechaCorta(q.fecha) + ': ' + plata(falta) + destino + '. ' + cuando +
+      fechaCorta(q.plazoInicio) + ': ' + plata(falta) + destino + '. ' + cuando +
       '\n\nSúbelo por tu link (es solo tuyo, no lo compartas):\n' + f.link;
   }
 
@@ -523,7 +523,7 @@
     var nota = el('input', { type: 'text', placeholder: 'Ej: pagó en efectivo', style: 'flex:1;min-width:160px' });
     var estado = el('span', { clase: 'sub' });
     return el('div', { clase: 'detalle' }, [
-      el('p', { clase: 'sub', texto: 'Pago sin recibo en el sistema (efectivo, o recibo que llegó por WhatsApp) para la quincena del ' + fechaCorta(d.quincena.fecha) + '.' }),
+      el('p', { clase: 'sub', texto: 'Pago sin recibo en el sistema (efectivo, o recibo que llegó por WhatsApp) para la quincena del ' + fechaCorta(d.quincena.plazoInicio) + '.' }),
       el('div', { clase: 'fila-flex' }, [monto, nota, el('button', { clase: 'chico primario', onclick: function () {
         estado.textContent = 'Guardando…';
         llamar('apiPagoManual', CLAVE, f.id, d.quincena.fecha, monto.value, nota.value)
@@ -545,7 +545,7 @@
         qs.forEach(function (q) {
           var pct = q.esperado ? Math.min(100, Math.round(100 * q.recaudado / q.esperado)) : 0;
           cont.appendChild(el('div', { clase: 'fila-flex', style: 'font-size:13px;margin:4px 0' }, [
-            el('span', { style: 'width:56px', texto: fechaCorta(q.fecha) }),
+            el('span', { style: 'width:56px', texto: fechaCorta(q.plazoInicio || q.fecha) }),
             el('div', { clase: 'barra', style: 'flex:1' }, el('div', { style: 'width:' + pct + '%' })),
             el('span', { clase: 'num', style: 'width:150px', texto: plata(q.recaudado) + ' (' + pct + '%)' })
           ]));

@@ -286,7 +286,7 @@
     t.innerHTML = '';
     if (actual) {
       var abierto = datos.hoy >= actual.plazoInicio;
-      t.appendChild(el('p', { clase: 'sub', texto: 'Quincena del ' + fechaCorta(actual.fecha) }));
+      t.appendChild(el('p', { clase: 'sub', texto: 'Quincena del ' + fechaCorta(actual.plazoInicio) }));
       t.appendChild(el('div', { clase: 'fila-flex', style: 'justify-content:space-between' }, [
         el('div', {}, [
           el('div', { style: 'font-size:26px;font-weight:600', texto: plata(actual.esperado) }),
@@ -323,7 +323,7 @@
     v.innerHTML = '';
     if (vencidas.length) {
       v.appendChild(el('div', { clase: 'aviso mal', texto: 'Tienes ' + (vencidas.length === 1 ? 'una quincena vencida' : vencidas.length + ' quincenas vencidas') +
-        ' sin recibo: ' + vencidas.map(function (q) { return fechaCorta(q.fecha); }).join(', ') + '. Puedes subir el recibo abajo.' }));
+        ' sin recibo: ' + vencidas.map(function (q) { return fechaCorta(q.plazoInicio); }).join(', ') + '. Puedes subir el recibo abajo.' }));
     }
 
     // Opciones del selector: la actual y las anteriores que no estén pagadas
@@ -335,7 +335,7 @@
     }).reverse();
     var sigue = opciones.some(function (q) { return q.fecha === elegida; });
     opciones.forEach(function (q) {
-      var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.fecha) + (q.fecha === datos.actual ? ' (actual)' : ' — ' + TEXTO_ESTADO[q.estado]) });
+      var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.plazoInicio) + (q.fecha === datos.actual ? ' (actual)' : ' — ' + TEXTO_ESTADO[q.estado]) });
       if (sigue ? q.fecha === elegida : q.fecha === datos.actual) o.selected = true;
       sel.appendChild(o);
     });
@@ -350,7 +350,7 @@
       var tabla = el('table', {}, [el('tr', {}, [el('th', { texto: 'Quincena' }), el('th', { clase: 'num', texto: 'Pagado' }), el('th', { texto: 'Estado' })])]);
       filas.forEach(function (q) {
         tabla.appendChild(el('tr', {}, [
-          el('td', { texto: fechaCorta(q.fecha) }),
+          el('td', { texto: fechaCorta(q.plazoInicio) }),
           el('td', { clase: 'num', texto: plata(q.pagado) + ' de ' + plata(q.esperado) }),
           el('td', {}, el('span', { clase: 'etiqueta e-' + q.estado, texto: TEXTO_ESTADO[q.estado] }))
         ]));

@@ -42,6 +42,8 @@
   button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
   @media (prefers-color-scheme: dark) { button.primario { color: #042c53; } }
   button:disabled { opacity: .6; cursor: default; }
+  button.primario:hover:not(:disabled) { filter: brightness(1.1); }
+  select, input[type=file], label[for], a[href], [onclick] { cursor: pointer; }
   button.chico, .boton.chico { font-size: 12px; padding: 4px 10px; }
   .ancho { width: 100%; }
   input, select, textarea { font: inherit; color: var(--texto); background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 8px 10px; }
@@ -78,6 +80,8 @@
     .persona { border-top: 1px solid var(--borde); padding: 10px 0; }
     .persona:first-child { border-top: none; }
     .persona .cab { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .persona .cab.clicable { cursor: pointer; border-radius: var(--radio); margin: -4px -6px; padding: 4px 6px; }
+    .persona .cab.clicable:hover { background: var(--suave); }
     .persona .nom { flex: 1; min-width: 150px; }
     .persona .monto { font-size: 13px; color: var(--texto2); white-space: nowrap; }
     .detalle { background: var(--suave); border-radius: var(--radio); padding: 12px; margin-top: 10px; }
@@ -264,32 +268,56 @@
   var ORDEN = ['por_revisar', 'vencido', 'parcial', 'pendiente', 'futura', 'receptor_sin_cuota', 'tarde', 'a_tiempo', 'antes'];
   var AL_DIA = { a_tiempo: 1, tarde: 1 };
 
-  /** fresco = true después de aprobar, rechazar o registrar: no mostrar la copia vieja ni un instante. */
-  function cargar(fecha, fresco) {
+  var ultimoJson = '';
+
+  /** Muestra datos nuevos del tablero; solo vuelve a dibujar si algo cambió. */
+  function aplicar(r, clave) {
+    var json = JSON.stringify(r);
+    guardar(clave || 't:' + r.quincena.fecha, r);
+    guardar('t:' + r.quincena.fecha, r);
+    document.title = 'Tablero · ' + r.cadena;
+    mostrarApp();
+    if (json === ultimoJson) return;
+    ultimoJson = json;
+    d = r;
+    pintar();
+  }
+
+  /**
+   * fresco = true después de aprobar, rechazar o registrar: no mostrar la copia vieja ni un instante.
+   * silencioso = true en la actualización automática: sin "Actualizando…" ni mensajes de error.
+   */
+  function cargar(fecha, fresco, silencioso) {
     var clave = 't:' + (fecha || 'actual');
     var aviso = document.getElementById('actualizando');
     if (!fresco) {
       var viejo = guardado(clave);
-      if (viejo) {
-        d = viejo;
-        pintar();
-        mostrarApp();
-      }
+      if (viejo) aplicar(viejo, clave);
     }
-    aviso.textContent = 'Actualizando…';
+    if (!silencioso) aviso.textContent = 'Actualizando…';
     return llamar('apiTablero', CLAVE, fecha || null).then(function (r) {
-      d = r;
-      guardar(clave, r);
-      guardar('t:' + r.quincena.fecha, r);
-      document.title = 'Tablero · ' + r.cadena;
-      pintar();
-      mostrarApp();
+      aplicar(r, clave);
       aviso.textContent = '';
     }).catch(function (e) {
+      if (silencioso) return;
       if (d) aviso.textContent = 'No se pudo actualizar: ' + mensajeError(e);
       else document.getElementById('cargando').textContent = mensajeError(e);
     });
   }
+
+  // Actualización automática: cada 30 s mientras la página está a la vista, y al volver a ella.
+  // No se actualiza mientras hay un recibo o un formulario abierto (se perdería lo que se está escribiendo).
+  function editando() {
+    var foco = document.activeElement;
+    if (foco && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) return true;
+    return Object.keys(abiertos).some(function (k) { return abiertos[k]; });
+  }
+  function actualizarSolo() {
+    if (!d || document.visibilityState !== 'visible' || editando()) return;
+    cargar(d.quincena.fecha, true, true);
+  }
+  setInterval(actualizarSolo, 30000);
+  document.addEventListener('visibilitychange', actualizarSolo);
 
   function mostrarApp() {
     document.getElementById('cargando').classList.add('oculto');
@@ -381,7 +409,8 @@
 
   function filaPersona(f) {
     var pagos = pagosDe(f);
-    var cab = el('div', { clase: 'cab' }, [
+    var alternar = function () { abiertos[f.id] = !abiertos[f.id]; pintarLista(); };
+    var cab = el('div', pagos.length ? { clase: 'cab clicable', title: 'Ver recibos', onclick: alternar } : { clase: 'cab' }, [
       el('span', { clase: 'punto p-' + f.estado }),
       el('div', { clase: 'nom' }, [
         el('div', { texto: f.nombre }),
@@ -393,7 +422,7 @@
     ]);
     var acciones = el('div', { clase: 'fila-flex', style: 'margin-top:8px;padding-left:20px' });
     if (pagos.length) {
-      acciones.appendChild(el('button', { clase: 'chico', onclick: function () { abiertos[f.id] = !abiertos[f.id]; pintarLista(); } },
+      acciones.appendChild(el('button', { clase: 'chico', onclick: alternar },
         (abiertos[f.id] ? 'Ocultar' : 'Ver') + ' recibo' + (pagos.length > 1 ? 's (' + pagos.length + ')' : '')));
     }
     if (!AL_DIA[f.estado] && f.estado !== 'por_revisar' && f.estado !== 'antes' && f.celular) {
@@ -409,6 +438,11 @@
     }
     if (abiertos[f.id + ':manual']) cont.appendChild(formManual(f));
     return cont;
+  }
+
+  /** Desactiva los botones de un recibo mientras se guarda (evita dobles clics). */
+  function bloquear(caja, si) {
+    [].forEach.call(caja.querySelectorAll('button, input'), function (b) { b.disabled = si; });
   }
 
   function bloquePago(p) {
@@ -459,9 +493,10 @@
       var hacer = function (accion) {
         return function () {
           estado.textContent = 'Guardando…';
-          llamar('apiRevisar', CLAVE, p.id, accion, monto.value, nota.value)
-            .then(function () { return cargar(d.quincena.fecha, true); })
-            .catch(function (e) { estado.textContent = mensajeError(e); });
+          bloquear(caja, true);
+          llamar('apiRevisar', CLAVE, p.id, accion, monto.value, nota.value, d.quincena.fecha)
+            .then(function (r) { aplicar(r); })
+            .catch(function (e) { estado.textContent = mensajeError(e); bloquear(caja, false); });
         };
       };
       var botones = [
@@ -472,8 +507,9 @@
       if (p.tieneArchivo) {
         botones.push(el('button', { clase: 'chico', onclick: function () {
           estado.textContent = 'Leyendo con IA…';
-          llamar('apiReprocesar', CLAVE, p.id).then(function () { return cargar(d.quincena.fecha, true); })
-            .catch(function (e) { estado.textContent = mensajeError(e); });
+          bloquear(caja, true);
+          llamar('apiReprocesar', CLAVE, p.id, d.quincena.fecha).then(function (r) { aplicar(r); })
+            .catch(function (e) { estado.textContent = mensajeError(e); bloquear(caja, false); });
         } }, 'Leer de nuevo con IA'));
       }
       botones.push(estado);
@@ -491,7 +527,7 @@
       el('div', { clase: 'fila-flex' }, [monto, nota, el('button', { clase: 'chico primario', onclick: function () {
         estado.textContent = 'Guardando…';
         llamar('apiPagoManual', CLAVE, f.id, d.quincena.fecha, monto.value, nota.value)
-          .then(function () { abiertos[f.id + ':manual'] = false; return cargar(d.quincena.fecha, true); })
+          .then(function (r) { abiertos[f.id + ':manual'] = false; ultimoJson = ''; aplicar(r); })
           .catch(function (e) { estado.textContent = mensajeError(e); });
       } }, 'Guardar'), estado])
     ]);

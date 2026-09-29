@@ -42,6 +42,8 @@
   button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
   @media (prefers-color-scheme: dark) { button.primario { color: #042c53; } }
   button:disabled { opacity: .6; cursor: default; }
+  button.primario:hover:not(:disabled) { filter: brightness(1.1); }
+  select, input[type=file], label[for], a[href], [onclick] { cursor: pointer; }
   button.chico, .boton.chico { font-size: 12px; padding: 4px 10px; }
   .ancho { width: 100%; }
   input, select, textarea { font: inherit; color: var(--texto); background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 8px 10px; }
@@ -326,12 +328,15 @@
 
     // Opciones del selector: la actual y las anteriores que no estén pagadas
     var sel = document.getElementById('quincena');
+    var elegida = sel.value; // conservar lo que la persona eligió si la página se actualiza sola
     sel.innerHTML = '';
-    datos.quincenas.filter(function (q) {
+    var opciones = datos.quincenas.filter(function (q) {
       return q.fecha === datos.actual || (q.fecha < datos.actual && !PAGADO[q.estado] && q.estado !== 'antes');
-    }).reverse().forEach(function (q) {
+    }).reverse();
+    var sigue = opciones.some(function (q) { return q.fecha === elegida; });
+    opciones.forEach(function (q) {
       var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.fecha) + (q.fecha === datos.actual ? ' (actual)' : ' — ' + TEXTO_ESTADO[q.estado]) });
-      if (q.fecha === datos.actual) o.selected = true;
+      if (sigue ? q.fecha === elegida : q.fecha === datos.actual) o.selected = true;
       sel.appendChild(o);
     });
 
@@ -412,7 +417,12 @@
           res.appendChild(el('div', { clase: 'aviso warn', texto: 'Recibimos tu recibo. La administradora lo va a revisar.' }));
         }
         reiniciarSubida();
-        return cargar();
+        // La respuesta ya trae la página actualizada: no hace falta otra llamada
+        if (r.datos) {
+          datos = r.datos;
+          guardar('p:' + TOKEN, r.datos);
+          pintar();
+        }
       })
       .catch(function (e) {
         res.innerHTML = '';
@@ -434,6 +444,14 @@
   document.getElementById('foto-galeria').addEventListener('change', elegirArchivo);
   document.getElementById('cancelar').addEventListener('click', reiniciarSubida);
   document.getElementById('enviar').addEventListener('click', enviar);
+  // Al volver a la página (por ejemplo, desde WhatsApp) y cada minuto mientras está a la vista, traer lo último.
+  // No mientras se está preparando o enviando un recibo.
+  function actualizarSolo() {
+    if (!datos || document.visibilityState !== 'visible' || archivoListo) return;
+    cargar();
+  }
+  setInterval(actualizarSolo, 60000);
+  document.addEventListener('visibilitychange', actualizarSolo);
   cargar();
 </script>
 </body>

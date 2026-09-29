@@ -372,8 +372,9 @@
     var cuando = d.hoy > q.plazoFin ? 'El plazo venció el ' + fechaCorta(q.plazoFin) + '.' :
       d.hoy < q.plazoInicio ? 'El plazo es del ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) + '.' :
       'El plazo es hasta el ' + fechaCorta(q.plazoFin) + '.';
-    return 'Hola ' + nombre + ', te recuerdo el pago de la cadena de la quincena del ' + fechaCorta(q.fecha) + ': ' +
-      plata(falta) + destino + '. ' + cuando + '\n\nSube tu recibo aquí: ' + f.link + '\n\n¡Gracias!';
+    return 'Hola ' + nombre + ', por favor recuerda subir el soporte de pago de la cadena de la quincena del ' +
+      fechaCorta(q.fecha) + ': ' + plata(falta) + destino + '. ' + cuando +
+      '\n\nSúbelo por tu link (es solo tuyo, no lo compartas):\n' + f.link;
   }
 
   function filaPersona(f) {
@@ -535,9 +536,8 @@
   function mensajeBienvenida(f) {
     var nombre = f.nombre.split(' ')[0];
     nombre = nombre.charAt(0) + nombre.slice(1).toLowerCase();
-    return 'Hola ' + nombre + '. Desde ahora los recibos de la cadena se suben por este link personal ' +
-      '(es solo tuyo, no lo compartas): ' + f.link + '\n\nAhí ves cuánto pagar, a quién consignar y hasta cuándo, ' +
-      'y puedes tomarle la foto al recibo directamente. Guárdalo para usarlo cada quincena.';
+    return 'Hola ' + nombre + ', por favor a partir de ahora los soportes de pago de la cadena súbelos por este link ' +
+      '(es solo tuyo, no lo compartas):\n' + f.link;
   }
 
   function verLinks() {

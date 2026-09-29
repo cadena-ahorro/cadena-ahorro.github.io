@@ -67,6 +67,9 @@
   .aviso.mal { background: var(--mal-bg); color: var(--mal); }
   .aviso.ok { background: var(--ok-bg); color: var(--ok); }
   .aviso.info { background: var(--acento-bg); color: var(--acento); }
+  .aviso.alerta { background: #fde68a; color: #5c3a00; border: 2px solid #d97706; font-size: 15px; padding: 12px 14px; }
+  .aviso.alerta .alerta-titulo { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  @media (prefers-color-scheme: dark) { .aviso.alerta { background: #7c4a03; color: #fff4d6; border-color: #fbbf24; } }
   .cargando { color: var(--texto2); padding: 40px 0; text-align: center; }
   .oculto { display: none !important; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; }
@@ -327,14 +330,14 @@
   function pintar() {
     var q = d.quincena;
     document.getElementById('cadena').textContent = d.cadena + ' · hoy ' + fechaCorta(d.hoy);
-    document.getElementById('titulo').textContent = 'Quincena #' + q.numero + ' · ' + fechaCorta(q.plazoInicio);
+    document.getElementById('titulo').textContent = 'Quincena #' + q.numero + ' · ' + fechaCorta(q.fecha);
     document.getElementById('plazo').textContent = 'Plazo de pago: ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) +
       (d.hoy < q.plazoInicio ? ' · aún no abre' : d.hoy > q.plazoFin ? ' · cerrado' : ' · abierto');
 
     var sel = document.getElementById('sel-quincena');
     sel.innerHTML = '';
     d.quincenas.forEach(function (x) {
-      var o = el('option', { value: x.fecha, texto: '#' + x.numero + ' – ' + fechaCorta(x.plazoInicio || x.fecha) });
+      var o = el('option', { value: x.fecha, texto: '#' + x.numero + ' – ' + fechaCorta(x.fecha) });
       if (x.fecha === q.fecha) o.selected = true;
       sel.appendChild(o);
     });
@@ -344,7 +347,16 @@
     if (d.simulado) av.appendChild(el('div', { clase: 'aviso warn', texto: 'Modo pruebas: la fecha de hoy está simulada (HOY_SIMULADO en Configuracion).' }));
     if (d.resumen.antesDelSistema) av.appendChild(el('div', { clase: 'aviso info', texto: 'Esta quincena es anterior al arranque del sistema. Puedes registrar pagos a mano si quieres el histórico.' }));
     d.errores.forEach(function (e) {
-      av.appendChild(el('div', { clase: /^Falta la cuenta de/.test(e) ? 'aviso warn' : 'aviso mal', texto: e }));
+      if (/^Falta la cuenta de/.test(e)) {
+        // Aviso importante para la administradora: título en negrita y el detalle debajo
+        var corte = e.indexOf('. ');
+        av.appendChild(el('div', { clase: 'aviso alerta', role: 'alert' }, [
+          el('div', { clase: 'alerta-titulo', texto: '⚠ ' + e.slice(0, corte + 1) }),
+          el('div', { texto: e.slice(corte + 2) })
+        ]));
+      } else {
+        av.appendChild(el('div', { clase: 'aviso mal', texto: e }));
+      }
     });
 
     var r = d.resumen;
@@ -403,7 +415,7 @@
       d.hoy < q.plazoInicio ? 'El plazo es del ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) + '.' :
       'El plazo es hasta el ' + fechaCorta(q.plazoFin) + '.';
     return 'Hola ' + nombre + ', por favor recuerda subir el soporte de pago de la cadena de la quincena del ' +
-      fechaCorta(q.plazoInicio) + ': ' + plata(falta) + destino + '. ' + cuando +
+      fechaCorta(q.fecha) + ': ' + plata(falta) + destino + '. ' + cuando +
       '\n\nSúbelo por tu link (es solo tuyo, no lo compartas):\n' + f.link;
   }
 
@@ -523,7 +535,7 @@
     var nota = el('input', { type: 'text', placeholder: 'Ej: pagó en efectivo', style: 'flex:1;min-width:160px' });
     var estado = el('span', { clase: 'sub' });
     return el('div', { clase: 'detalle' }, [
-      el('p', { clase: 'sub', texto: 'Pago sin recibo en el sistema (efectivo, o recibo que llegó por WhatsApp) para la quincena del ' + fechaCorta(d.quincena.plazoInicio) + '.' }),
+      el('p', { clase: 'sub', texto: 'Pago sin recibo en el sistema (efectivo, o recibo que llegó por WhatsApp) para la quincena del ' + fechaCorta(d.quincena.fecha) + '.' }),
       el('div', { clase: 'fila-flex' }, [monto, nota, el('button', { clase: 'chico primario', onclick: function () {
         estado.textContent = 'Guardando…';
         llamar('apiPagoManual', CLAVE, f.id, d.quincena.fecha, monto.value, nota.value)
@@ -545,7 +557,7 @@
         qs.forEach(function (q) {
           var pct = q.esperado ? Math.min(100, Math.round(100 * q.recaudado / q.esperado)) : 0;
           cont.appendChild(el('div', { clase: 'fila-flex', style: 'font-size:13px;margin:4px 0' }, [
-            el('span', { style: 'width:56px', texto: fechaCorta(q.plazoInicio || q.fecha) }),
+            el('span', { style: 'width:56px', texto: fechaCorta(q.fecha) }),
             el('div', { clase: 'barra', style: 'flex:1' }, el('div', { style: 'width:' + pct + '%' })),
             el('span', { clase: 'num', style: 'width:150px', texto: plata(q.recaudado) + ' (' + pct + '%)' })
           ]));

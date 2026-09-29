@@ -315,7 +315,9 @@
     av.innerHTML = '';
     if (d.simulado) av.appendChild(el('div', { clase: 'aviso warn', texto: 'Modo pruebas: la fecha de hoy está simulada (HOY_SIMULADO en Configuracion).' }));
     if (d.resumen.antesDelSistema) av.appendChild(el('div', { clase: 'aviso info', texto: 'Esta quincena es anterior al arranque del sistema. Puedes registrar pagos a mano si quieres el histórico.' }));
-    d.errores.forEach(function (e) { av.appendChild(el('div', { clase: 'aviso mal', texto: e })); });
+    d.errores.forEach(function (e) {
+      av.appendChild(el('div', { clase: /^Falta la cuenta de/.test(e) ? 'aviso warn' : 'aviso mal', texto: e }));
+    });
 
     var r = d.resumen;
     var m = document.getElementById('metricas');

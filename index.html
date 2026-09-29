@@ -309,13 +309,20 @@
         t.appendChild(el('div', { clase: 'aviso info', texto: 'Esta quincena te toca recibir. Si consignas tu propia cuota, sube también ese recibo.' }));
       } else if (actual.receptor) {
         var r = actual.receptor;
+        // Misma regla que el aviso del tablero: sin banco Y número completos, no se muestran datos a medias
+        var hayCuenta = !!(r.banco && r.cuenta);
         t.appendChild(el('div', { style: 'border-top:1px solid var(--borde);margin-top:10px;padding-top:10px' }, [
           el('p', { clase: 'sub', texto: 'Consigna a' }),
           el('div', { style: 'font-weight:600', texto: r.titular }),
-          el('div', { clase: 'fila-flex' }, [
-            el('span', { texto: [r.banco, r.cuenta].filter(Boolean).join(' · ') || 'Pide los datos a la administradora' }),
-            r.cuenta ? el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar número') : null
-          ])
+          hayCuenta
+            ? el('div', { clase: 'fila-flex' }, [
+                el('span', { texto: r.banco + ' · ' + r.cuenta }),
+                el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar número')
+              ])
+            : el('div', { clase: 'aviso alerta', style: 'margin-bottom:0' }, [
+                el('div', { clase: 'alerta-titulo', texto: '⚠ Aún no están los datos de la cuenta' }),
+                el('div', { texto: 'Pide los datos a la administradora antes de consignar.' })
+              ])
         ]));
       }
     }

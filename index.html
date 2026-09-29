@@ -317,7 +317,7 @@
           hayCuenta
             ? el('div', { clase: 'fila-flex' }, [
                 el('span', { texto: r.banco + ' · ' + r.cuenta }),
-                el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar número')
+                el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar')
               ])
             : el('div', { clase: 'aviso alerta', style: 'margin-bottom:0' }, [
                 el('div', { clase: 'alerta-titulo', texto: '⚠ Aún no están los datos de la cuenta' }),

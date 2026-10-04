@@ -236,7 +236,7 @@
 
   var TEXTO_ESTADO = {
     a_tiempo: 'Pagado', tarde: 'Pagado tarde', por_revisar: 'Recibido, en revisión', parcial: 'Pago parcial',
-    pendiente: 'Pendiente', futura: 'Próximo', vencido: 'Vencido', receptor_sin_cuota: 'Te tocó recibir', antes: '—'
+    pendiente: 'Pendiente', futura: 'Próximo', vencido: 'Pendiente', receptor_sin_cuota: 'Te tocó recibir', antes: '—'
   };
   var PAGADO = { a_tiempo: 1, tarde: 1, por_revisar: 1 };
 
@@ -279,22 +279,79 @@
     return datos.quincenas.filter(function (q) { return q.fecha === fecha; })[0];
   }
 
+  /** Quincenas con plazo vencido que la persona todavía debe (se muestran como "pendientes"). */
+  function pendientes() {
+    return datos.quincenas.filter(function (q) {
+      return q.estado === 'vencido' || (q.estado === 'parcial' && datos.hoy > q.plazoFin);
+    });
+  }
+
   function pintar() {
     document.getElementById('cadena').textContent = datos.cadena;
     document.getElementById('saludo').textContent = 'Hola, ' + datos.nombre.split(' ')[0].charAt(0) +
       datos.nombre.split(' ')[0].slice(1).toLowerCase();
 
-    var actual = quincena(datos.actual);
+    // Aviso de quincenas pendientes (plazo vencido, sin recibo)
+    var pend = pendientes();
+    var v = document.getElementById('vencidas');
+    v.innerHTML = '';
+    if (pend.length) {
+      v.appendChild(el('div', { clase: 'aviso mal', texto: 'Tienes ' + (pend.length === 1 ? 'una quincena pendiente' : pend.length + ' quincenas pendientes') +
+        ' sin recibo: ' + pend.map(function (q) { return fechaCorta(q.fecha); }).join(', ') + '. Puedes subir el recibo abajo.' }));
+    }
+
+    // Selector: primero las pendientes (la más antigua arriba), luego la siguiente quincena.
+    // Por defecto queda la pendiente más antigua; si la persona eligió otra, se respeta.
+    var sel = document.getElementById('quincena');
+    var elegida = sel.value;
+    sel.innerHTML = '';
+    var opciones = datos.quincenas.filter(function (q) {
+      return q.fecha === datos.actual || (q.fecha < datos.actual && !PAGADO[q.estado] && q.estado !== 'antes');
+    });
+    var porDefecto = pend.length ? pend[0].fecha : datos.actual;
+    var seleccion = opciones.some(function (q) { return q.fecha === elegida; }) ? elegida : porDefecto;
+    opciones.forEach(function (q) {
+      var etiqueta = q.fecha === datos.actual ? (pend.length ? ' (siguiente)' : ' (actual)') : ' — ' + TEXTO_ESTADO[q.estado];
+      var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.fecha) + etiqueta });
+      if (q.fecha === seleccion) o.selected = true;
+      sel.appendChild(o);
+    });
+    pintarTarjeta(seleccion);
+
+    // Historial
+    var hist = document.getElementById('historial');
+    hist.innerHTML = '';
+    var filas = datos.quincenas.filter(function (q) { return q.estado !== 'antes' && q.fecha <= datos.actual; }).reverse();
+    if (!filas.length) {
+      hist.appendChild(el('p', { clase: 'sub', texto: 'Aún no hay pagos registrados.' }));
+    } else {
+      var tabla = el('table', {}, [el('tr', {}, [el('th', { texto: 'Quincena' }), el('th', { clase: 'num', texto: 'Pagado' }), el('th', { texto: 'Estado' })])]);
+      filas.forEach(function (q) {
+        tabla.appendChild(el('tr', {}, [
+          el('td', { texto: fechaCorta(q.fecha) }),
+          el('td', { clase: 'num', texto: plata(q.pagado) + ' de ' + plata(q.esperado) }),
+          el('td', {}, el('span', { clase: 'etiqueta e-' + q.estado, texto: TEXTO_ESTADO[q.estado] }))
+        ]));
+      });
+      hist.appendChild(tabla);
+    }
+  }
+
+  /** Tarjeta de arriba: cuánto, hasta cuándo y a quién consignar, para la quincena elegida en el selector. */
+  function pintarTarjeta(fecha) {
+    var actual = quincena(fecha);
     var t = document.getElementById('tarjeta-actual');
     t.innerHTML = '';
     if (actual) {
       var abierto = datos.hoy >= actual.plazoInicio;
+      var cerrado = datos.hoy > actual.plazoFin;
       t.appendChild(el('p', { clase: 'sub', texto: 'Quincena del ' + fechaCorta(actual.fecha) }));
       t.appendChild(el('div', { clase: 'fila-flex', style: 'justify-content:space-between' }, [
         el('div', {}, [
           el('div', { style: 'font-size:26px;font-weight:600', texto: plata(actual.esperado) }),
-          el('div', { clase: 'sub', texto: (abierto ? 'Plazo hasta el ' : 'Pagas entre el ') +
-            (abierto ? fechaCorta(actual.plazoFin) : fechaCorta(actual.plazoInicio) + ' y el ' + fechaCorta(actual.plazoFin)) })
+          el('div', { clase: 'sub', texto: cerrado ? 'El plazo era hasta el ' + fechaCorta(actual.plazoFin)
+            : abierto ? 'Plazo hasta el ' + fechaCorta(actual.plazoFin)
+            : 'Pagas entre el ' + fechaCorta(actual.plazoInicio) + ' y el ' + fechaCorta(actual.plazoFin) })
         ]),
         el('span', { clase: 'etiqueta e-' + actual.estado, texto: TEXTO_ESTADO[actual.estado] })
       ]));
@@ -327,46 +384,6 @@
       }
     }
 
-    // Quincenas vencidas sin pagar
-    var vencidas = datos.quincenas.filter(function (q) { return q.estado === 'vencido' || (q.estado === 'parcial' && datos.hoy > q.plazoFin); });
-    var v = document.getElementById('vencidas');
-    v.innerHTML = '';
-    if (vencidas.length) {
-      v.appendChild(el('div', { clase: 'aviso mal', texto: 'Tienes ' + (vencidas.length === 1 ? 'una quincena vencida' : vencidas.length + ' quincenas vencidas') +
-        ' sin recibo: ' + vencidas.map(function (q) { return fechaCorta(q.fecha); }).join(', ') + '. Puedes subir el recibo abajo.' }));
-    }
-
-    // Opciones del selector: la actual y las anteriores que no estén pagadas
-    var sel = document.getElementById('quincena');
-    var elegida = sel.value; // conservar lo que la persona eligió si la página se actualiza sola
-    sel.innerHTML = '';
-    var opciones = datos.quincenas.filter(function (q) {
-      return q.fecha === datos.actual || (q.fecha < datos.actual && !PAGADO[q.estado] && q.estado !== 'antes');
-    }).reverse();
-    var sigue = opciones.some(function (q) { return q.fecha === elegida; });
-    opciones.forEach(function (q) {
-      var o = el('option', { value: q.fecha, texto: 'Quincena del ' + fechaCorta(q.fecha) + (q.fecha === datos.actual ? ' (actual)' : ' — ' + TEXTO_ESTADO[q.estado]) });
-      if (sigue ? q.fecha === elegida : q.fecha === datos.actual) o.selected = true;
-      sel.appendChild(o);
-    });
-
-    // Historial
-    var hist = document.getElementById('historial');
-    hist.innerHTML = '';
-    var filas = datos.quincenas.filter(function (q) { return q.estado !== 'antes' && q.fecha <= datos.actual; }).reverse();
-    if (!filas.length) {
-      hist.appendChild(el('p', { clase: 'sub', texto: 'Aún no hay pagos registrados.' }));
-    } else {
-      var tabla = el('table', {}, [el('tr', {}, [el('th', { texto: 'Quincena' }), el('th', { clase: 'num', texto: 'Pagado' }), el('th', { texto: 'Estado' })])]);
-      filas.forEach(function (q) {
-        tabla.appendChild(el('tr', {}, [
-          el('td', { texto: fechaCorta(q.fecha) }),
-          el('td', { clase: 'num', texto: plata(q.pagado) + ' de ' + plata(q.esperado) }),
-          el('td', {}, el('span', { clase: 'etiqueta e-' + q.estado, texto: TEXTO_ESTADO[q.estado] }))
-        ]));
-      });
-      hist.appendChild(tabla);
-    }
   }
 
   function copiar(texto, boton) {
@@ -450,6 +467,7 @@
       });
   }
 
+  document.getElementById('quincena').addEventListener('change', function (e) { pintarTarjeta(e.target.value); });
   document.getElementById('foto-camara').addEventListener('change', elegirArchivo);
   document.getElementById('foto-galeria').addEventListener('change', elegirArchivo);
   document.getElementById('cancelar').addEventListener('click', reiniciarSubida);

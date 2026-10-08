@@ -39,10 +39,10 @@
   button, .boton { font: inherit; font-size: 14px; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto);
     border-radius: var(--radio); padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
   button:hover, .boton:hover { background: var(--suave); }
-  button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
-  @media (prefers-color-scheme: dark) { button.primario { color: #042c53; } }
+  button.primario, .boton.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
+  @media (prefers-color-scheme: dark) { button.primario, .boton.primario { color: #042c53; } }
   button:disabled { opacity: .6; cursor: default; }
-  button.primario:hover:not(:disabled) { filter: brightness(1.1); }
+  button.primario:hover:not(:disabled), .boton.primario:hover { filter: brightness(1.1); background: var(--acento); }
   select, input[type=file], label[for], a[href], [onclick] { cursor: pointer; }
   button.chico, .boton.chico { font-size: 12px; padding: 4px 10px; }
   .ancho { width: 100%; }
@@ -54,13 +54,13 @@
   .e-por_revisar, .e-procesando { background: var(--warn-bg); color: var(--warn); }
   .e-parcial { background: var(--naranja-bg); color: var(--naranja); }
   .e-vencido, .e-rechazado { background: var(--mal-bg); color: var(--mal); }
-  .e-receptor_sin_cuota, .e-receptor { background: var(--acento-bg); color: var(--acento); }
+  .e-receptor_sin_cuota, .e-receptor, .e-exento { background: var(--acento-bg); color: var(--acento); }
   .e-pendiente, .e-futura { background: var(--suave); color: var(--texto2); }
   .e-antes { background: var(--gris-bg); color: var(--texto3); }
   .e-verificado_ia, .e-verificado_admin { background: var(--ok-bg); color: var(--ok); }
   .punto { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .p-a_tiempo { background: #639922; } .p-tarde { background: #7f77dd; } .p-por_revisar { background: #ef9f27; }
-  .p-parcial { background: #d85a30; } .p-vencido { background: #e24b4a; } .p-receptor_sin_cuota { background: #378add; }
+  .p-parcial { background: #d85a30; } .p-vencido { background: #e24b4a; } .p-receptor_sin_cuota, .p-exento { background: #378add; }
   .p-pendiente, .p-futura { border: 1.5px solid var(--texto3); } .p-antes { background: var(--gris-bg); }
   .aviso { border-radius: var(--radio); padding: 10px 12px; font-size: 14px; margin: 10px 0; }
   .aviso.warn { background: var(--warn-bg); color: var(--warn); }
@@ -76,6 +76,8 @@
   th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--borde); vertical-align: top; }
   th { color: var(--texto2); font-weight: 500; border-top: none; }
   .num { text-align: right; white-space: nowrap; }
+  .barra { height: 8px; border-radius: 4px; background: var(--suave); overflow: hidden; }
+  .barra > div { height: 100%; background: #639922; }
   img.recibo { max-width: 100%; max-height: 520px; border-radius: 8px; border: 1px solid var(--borde); display: block; }
 </style>
 
@@ -91,6 +93,8 @@
     <div id="vencidas"></div>
 
     <section class="tarjeta" id="tarjeta-actual"></section>
+
+    <div id="recibos"></div>
 
     <section class="tarjeta">
       <h2>Subir recibo</h2>
@@ -236,7 +240,7 @@
 
   var TEXTO_ESTADO = {
     a_tiempo: 'Pagado', tarde: 'Pagado tarde', por_revisar: 'Recibido, en revisión', parcial: 'Pago parcial',
-    pendiente: 'Pendiente', futura: 'Próximo', vencido: 'Pendiente', receptor_sin_cuota: 'Te tocó recibir', antes: '—'
+    pendiente: 'Pendiente', futura: 'Próximo', vencido: 'Pendiente', receptor_sin_cuota: 'Te tocó recibir', exento: 'Te tocó recibir', antes: '—'
   };
   var PAGADO = { a_tiempo: 1, tarde: 1, por_revisar: 1 };
 
@@ -317,6 +321,7 @@
       sel.appendChild(o);
     });
     pintarTarjeta(seleccion);
+    pintarRecibos();
 
     // Historial
     var hist = document.getElementById('historial');
@@ -335,6 +340,71 @@
       });
       hist.appendChild(tabla);
     }
+  }
+
+  var imagenAbierta = false; // mientras se ve un soporte, la página no se actualiza sola (se cerraría la imagen)
+
+  /** Para quien recibe: los soportes verificados de su quincena, en vivo, sin nombres ("Soporte 1, 2…"). */
+  function pintarRecibos() {
+    var cont = document.getElementById('recibos');
+    cont.innerHTML = '';
+    imagenAbierta = false;
+    (datos.recibos || []).forEach(function (r) {
+      var pct = r.esperado ? Math.min(100, Math.round(100 * r.recibido / r.esperado)) : 0;
+      var caja = el('section', { clase: 'tarjeta' });
+      caja.appendChild(el('div', { clase: 'fila-flex', style: 'justify-content:space-between' }, [
+        el('h2', { style: 'margin:0', texto: 'Tu cadena del ' + fechaCorta(r.fecha) }),
+        el('span', { clase: 'etiqueta ' + (r.completo ? 'e-a_tiempo' : 'e-pendiente'), texto: r.completo ? '✓ Completa' : 'En curso' })
+      ]));
+      caja.appendChild(el('div', { style: 'font-size:22px;font-weight:600;margin-top:6px', texto: plata(r.recibido) }));
+      caja.appendChild(el('div', { clase: 'sub', texto: 'recibido de ' + plata(r.esperado) }));
+      caja.appendChild(el('div', { clase: 'barra', style: 'margin:8px 0' }, el('div', { style: 'width:' + pct + '%' })));
+      if (r.enRevision) {
+        caja.appendChild(el('p', { clase: 'sub', texto: r.enRevision === 1 ? '1 soporte en revisión por la administradora.'
+          : r.enRevision + ' soportes en revisión por la administradora.' }));
+      }
+      if (!r.soportes.length) {
+        caja.appendChild(el('p', { clase: 'sub', texto: 'Aún no hay soportes verificados. Aparecen aquí a medida que se aprueban.' }));
+      } else {
+        var visor = el('div', { style: 'margin-top:8px' });
+        var tabla = el('table', {}, [el('tr', {}, [
+          el('th', { texto: 'Soporte' }), el('th', { texto: 'Fecha' }), el('th', { clase: 'num', texto: 'Valor' }), el('th', { texto: '' })
+        ])]);
+        r.soportes.forEach(function (s) {
+          var ver = s.tieneArchivo ? el('button', { clase: 'chico', onclick: function () {
+            ver.disabled = true;
+            ver.textContent = 'Cargando…';
+            llamar('apiReciboReceptor', TOKEN, s.id).then(function (x) {
+              visor.innerHTML = '';
+              imagenAbierta = true;
+              visor.appendChild(el('div', { clase: 'fila-flex', style: 'justify-content:space-between;margin-bottom:6px' }, [
+                el('b', { texto: 'Soporte ' + s.n + ' · ' + plata(s.monto) }),
+                el('button', { clase: 'chico', onclick: function () { visor.innerHTML = ''; imagenAbierta = false; } }, 'Cerrar')
+              ]));
+              if (x.tipo === 'application/pdf') {
+                visor.appendChild(el('p', { clase: 'sub', texto: 'Este soporte es un PDF. Pídeselo a la administradora si necesitas verlo.' }));
+              } else {
+                visor.appendChild(el('img', { clase: 'recibo', src: 'data:' + x.tipo + ';base64,' + x.datos, alt: 'Soporte ' + s.n }));
+              }
+              visor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }).catch(function (e) { visor.textContent = mensajeError(e); })
+              .then(function () { ver.disabled = false; ver.textContent = 'Ver'; });
+          } }, 'Ver') : el('span', { clase: 'sub', texto: 'efectivo' });
+          tabla.appendChild(el('tr', {}, [
+            el('td', { texto: 'Soporte ' + s.n }),
+            el('td', { texto: fechaCorta(s.fecha) + ' ' + String(s.fecha).slice(11, 16) }),
+            el('td', { clase: 'num', texto: plata(s.monto) }),
+            el('td', {}, ver)
+          ]));
+        });
+        tabla.appendChild(el('tr', {}, [
+          el('td', {}, el('b', { texto: 'Total' })), el('td', {}), el('td', { clase: 'num' }, el('b', { texto: plata(r.recibido) })), el('td', {})
+        ]));
+        caja.appendChild(tabla);
+        caja.appendChild(visor);
+      }
+      cont.appendChild(caja);
+    });
   }
 
   /** Tarjeta de arriba: cuánto, hasta cuándo y a quién consignar, para la quincena elegida en el selector. */
@@ -475,7 +545,7 @@
   // Al volver a la página (por ejemplo, desde WhatsApp) y cada minuto mientras está a la vista, traer lo último.
   // No mientras se está preparando o enviando un recibo.
   function actualizarSolo() {
-    if (!datos || document.visibilityState !== 'visible' || archivoListo) return;
+    if (!datos || document.visibilityState !== 'visible' || archivoListo || imagenAbierta) return;
     cargar();
   }
   setInterval(actualizarSolo, 60000);

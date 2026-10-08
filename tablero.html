@@ -39,10 +39,10 @@
   button, .boton { font: inherit; font-size: 14px; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto);
     border-radius: var(--radio); padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
   button:hover, .boton:hover { background: var(--suave); }
-  button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
-  @media (prefers-color-scheme: dark) { button.primario { color: #042c53; } }
+  button.primario, .boton.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
+  @media (prefers-color-scheme: dark) { button.primario, .boton.primario { color: #042c53; } }
   button:disabled { opacity: .6; cursor: default; }
-  button.primario:hover:not(:disabled) { filter: brightness(1.1); }
+  button.primario:hover:not(:disabled), .boton.primario:hover { filter: brightness(1.1); background: var(--acento); }
   select, input[type=file], label[for], a[href], [onclick] { cursor: pointer; }
   button.chico, .boton.chico { font-size: 12px; padding: 4px 10px; }
   .ancho { width: 100%; }
@@ -54,13 +54,13 @@
   .e-por_revisar, .e-procesando { background: var(--warn-bg); color: var(--warn); }
   .e-parcial { background: var(--naranja-bg); color: var(--naranja); }
   .e-vencido, .e-rechazado { background: var(--mal-bg); color: var(--mal); }
-  .e-receptor_sin_cuota, .e-receptor { background: var(--acento-bg); color: var(--acento); }
+  .e-receptor_sin_cuota, .e-receptor, .e-exento { background: var(--acento-bg); color: var(--acento); }
   .e-pendiente, .e-futura { background: var(--suave); color: var(--texto2); }
   .e-antes { background: var(--gris-bg); color: var(--texto3); }
   .e-verificado_ia, .e-verificado_admin { background: var(--ok-bg); color: var(--ok); }
   .punto { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .p-a_tiempo { background: #639922; } .p-tarde { background: #7f77dd; } .p-por_revisar { background: #ef9f27; }
-  .p-parcial { background: #d85a30; } .p-vencido { background: #e24b4a; } .p-receptor_sin_cuota { background: #378add; }
+  .p-parcial { background: #d85a30; } .p-vencido { background: #e24b4a; } .p-receptor_sin_cuota, .p-exento { background: #378add; }
   .p-pendiente, .p-futura { border: 1.5px solid var(--texto3); } .p-antes { background: var(--gris-bg); }
   .aviso { border-radius: var(--radio); padding: 10px 12px; font-size: 14px; margin: 10px 0; }
   .aviso.warn { background: var(--warn-bg); color: var(--warn); }
@@ -76,6 +76,8 @@
   th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--borde); vertical-align: top; }
   th { color: var(--texto2); font-weight: 500; border-top: none; }
   .num { text-align: right; white-space: nowrap; }
+  .barra { height: 8px; border-radius: 4px; background: var(--suave); overflow: hidden; }
+  .barra > div { height: 100%; background: #639922; }
   img.recibo { max-width: 100%; max-height: 520px; border-radius: 8px; border: 1px solid var(--borde); display: block; }
 </style>
 
@@ -93,8 +95,6 @@
     .datos-ia { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; margin: 8px 0; }
     .datos-ia span:nth-child(odd) { color: var(--texto2); }
     .filtros button.activo { background: var(--acento-bg); color: var(--acento); border-color: transparent; }
-    .barra { height: 8px; border-radius: 4px; background: var(--suave); overflow: hidden; }
-    .barra > div { height: 100%; background: #639922; }
   </style>
 </head>
 <body>
@@ -266,10 +266,11 @@
     a_tiempo: 'Pagó a tiempo', tarde: 'Pagó tarde', por_revisar: 'Por revisar', parcial: 'Pago parcial',
     pendiente: 'Pendiente', futura: 'Aún no abre', vencido: 'Vencido', receptor_sin_cuota: 'Recibe · sin cuota',
     antes: 'Antes del sistema', verificado_ia: 'Verificado por IA', verificado_admin: 'Aprobado por ti',
-    rechazado: 'Rechazado', procesando: 'Sin leer'
+    rechazado: 'Rechazado', procesando: 'Sin leer', exento: 'Recibe · no consigna'
   };
-  var ORDEN = ['por_revisar', 'vencido', 'parcial', 'pendiente', 'futura', 'receptor_sin_cuota', 'tarde', 'a_tiempo', 'antes'];
-  var AL_DIA = { a_tiempo: 1, tarde: 1 };
+  var ORDEN = ['por_revisar', 'vencido', 'parcial', 'pendiente', 'futura', 'receptor_sin_cuota', 'exento', 'tarde', 'a_tiempo', 'antes'];
+  var AL_DIA = { a_tiempo: 1, tarde: 1, exento: 1 };
+  var MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
   var ultimoJson = '';
 
@@ -380,8 +381,65 @@
         el('span', { clase: 'sub', texto: [d.receptor.titular.toUpperCase() === d.receptor.nombre ? '' : d.receptor.titular,
           d.receptor.banco, d.receptor.cuenta].filter(Boolean).join(' · ') })
       ]));
+      rc.appendChild(controlesReceptor());
     }
     pintarLista();
+  }
+
+  /** ¿Quien recibe consigna su propia cuota? (lo confirma la administradora) y el resumen por WhatsApp. */
+  function controlesReceptor() {
+    var q = d.quincena;
+    var r = d.resumen;
+    var no = !!q.receptorNoConsigna;
+    var estado = el('span', { clase: 'sub' });
+    var marcar = function (valor) {
+      return function () {
+        if (valor === no) return;
+        estado.textContent = 'Guardando…';
+        llamar('apiMarcarReceptor', CLAVE, q.fecha, valor).then(function (x) { aplicar(x); })
+          .catch(function (e) { estado.textContent = mensajeError(e); });
+      };
+    };
+    var cont = el('div', { style: 'border-top:1px solid var(--borde);margin-top:10px;padding-top:10px' });
+    cont.appendChild(el('div', { clase: 'fila-flex' }, [
+      el('span', { clase: 'sub', texto: '¿Quien recibe consigna su propia cuota (' + plata(d.cuotaReceptor) + ')?' }),
+      el('div', { clase: 'fila-flex filtros' }, [
+        el('button', { clase: 'chico' + (no ? '' : ' activo'), onclick: marcar(false) }, 'Sí consigna'),
+        el('button', { clase: 'chico' + (no ? ' activo' : ''), onclick: marcar(true) }, 'No consigna')
+      ]),
+      estado
+    ]));
+
+    // Resumen de soportes verificados y botón de WhatsApp (solo cuando está completo)
+    var pct = r.esperado ? Math.min(100, Math.round(100 * r.recaudadoVerificado / r.esperado)) : 0;
+    cont.appendChild(el('div', { clase: 'fila-flex', style: 'margin-top:10px' }, [
+      el('span', { clase: 'sub', texto: 'Soportes verificados: ' + plata(r.recaudadoVerificado) + ' de ' + plata(r.esperado) +
+        (r.receptorNoConsigna ? ' (sin la cuota de quien recibe)' : '') }),
+      el('div', { clase: 'barra', style: 'flex:1;min-width:80px' }, el('div', { style: 'width:' + pct + '%' }))
+    ]));
+    var fila = d.filas.filter(function (f) { return f.nombre === d.receptor.nombre; })[0];
+    if (r.completo && fila && fila.celular) {
+      cont.appendChild(el('a', { clase: 'boton chico primario', style: 'margin-top:8px', target: '_blank',
+        href: 'https://wa.me/' + fila.celular + '?text=' + encodeURIComponent(textoResumen(fila)) }, 'Enviar resumen por WhatsApp'));
+    } else {
+      cont.appendChild(el('button', { clase: 'chico', style: 'margin-top:8px', disabled: 'disabled',
+        title: 'Se habilita cuando todos los soportes estén verificados' }, 'Enviar resumen por WhatsApp'));
+      cont.appendChild(el('span', { clase: 'sub', style: 'margin-left:8px', texto: fila && !fila.celular ? 'Quien recibe no tiene celular registrado.'
+        : 'Se habilita cuando esté completo (' + plata(r.recaudadoVerificado) + ' de ' + plata(r.esperado) + ').' }));
+    }
+    return cont;
+  }
+
+  /** Mismo formato que el resumen que Olga mandaba a mano. */
+  function textoResumen(fila) {
+    var p = d.quincena.fecha.split('-');
+    var miles = function (n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+    var lineas = d.soportes.soportes.map(function (s) { return 'Soporte ' + s.n + '.   ' + miles(s.monto); });
+    return 'Resumen entrega cadena ' + Number(p[2]) + ' de ' + MESES_LARGOS[Number(p[1]) - 1] + ':\n\n' +
+      lineas.join('\n') +
+      '\n\nCon esto queda completo el puesto de la cadena por valor de $ ' + miles(d.resumen.recaudadoVerificado) + '.' +
+      (fila.link ? '\n\nPuedes ver cada soporte en tu link: ' + fila.link : '') +
+      '\n\nQuedamos ok.';
   }
 
   function pasaFiltro(f) {

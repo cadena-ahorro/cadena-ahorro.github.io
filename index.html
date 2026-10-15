@@ -163,6 +163,17 @@
     try { localStorage.setItem('cadena:' + clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento: no pasa nada */ }
   }
 
+  /** Medios de pago de quien recibe ya emparejados (Nequi: …, Llave Bre-B: …); respaldo para datos viejos guardados. */
+  function opcionesDe(r) {
+    if (r.opciones && r.opciones.length) return r.opciones;
+    return [{ etiqueta: r.banco, valor: r.cuenta }];
+  }
+
+  /** "Nequi: 3012311506 · Llave Bre-B: 51961461" en una línea. */
+  function opcionesTexto(r, separador) {
+    return opcionesDe(r).map(function (o) { return o.etiqueta + ': ' + o.valor; }).join(separador || ' · ');
+  }
+
   /** Parámetro de la dirección (?t=... o ?admin=...). */
   function parametro(nombre) {
     var m = location.search.match(new RegExp('[?&]' + nombre + '=([^&#]+)'));
@@ -442,14 +453,13 @@
           el('p', { clase: 'sub', texto: 'Consigna a' }),
           el('div', { style: 'font-weight:600', texto: r.titular }),
           hayCuenta
-            ? el('div', {}, [el('div', { clase: 'sub', texto: r.banco })].concat(
-                // Cada número u opción con su propio botón: copiar "3012311506 - 51961461" entero fallaría en el banco
-                (r.cuentas && r.cuentas.length ? r.cuentas : [r.cuenta]).map(function (c) {
-                  return el('div', { clase: 'fila-flex', style: 'margin-top:4px' }, [
-                    el('span', { style: 'font-size:17px', texto: c }),
-                    el('button', { clase: 'chico', onclick: function (ev) { copiar(c, ev.target); } }, 'Copiar')
-                  ]);
-                })))
+            ? el('div', {}, opcionesDe(r).map(function (o) {
+                // "Nequi: 3012311506" / "Llave Bre-B: 51961461", cada una con su botón Copiar
+                return el('div', { clase: 'fila-flex', style: 'margin-top:4px' }, [
+                  el('span', { style: 'font-size:17px' }, [el('span', { clase: 'sub', style: 'font-size:15px', texto: o.etiqueta + ': ' }), o.valor]),
+                  el('button', { clase: 'chico', onclick: function (ev) { copiar(o.valor, ev.target); } }, 'Copiar')
+                ]);
+              }))
             : el('div', { clase: 'aviso alerta', style: 'margin-bottom:0' }, [
                 el('div', { clase: 'alerta-titulo', texto: '⚠ Aún no están los datos de la cuenta' }),
                 el('div', { texto: 'Pide los datos a la administradora antes de consignar.' })

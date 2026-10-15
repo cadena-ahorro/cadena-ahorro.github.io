@@ -186,6 +186,17 @@
     try { localStorage.setItem('cadena:' + clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento: no pasa nada */ }
   }
 
+  /** Medios de pago de quien recibe ya emparejados (Nequi: …, Llave Bre-B: …); respaldo para datos viejos guardados. */
+  function opcionesDe(r) {
+    if (r.opciones && r.opciones.length) return r.opciones;
+    return [{ etiqueta: r.banco, valor: r.cuenta }];
+  }
+
+  /** "Nequi: 3012311506 · Llave Bre-B: 51961461" en una línea. */
+  function opcionesTexto(r, separador) {
+    return opcionesDe(r).map(function (o) { return o.etiqueta + ': ' + o.valor; }).join(separador || ' · ');
+  }
+
   /** Parámetro de la dirección (?t=... o ?admin=...). */
   function parametro(nombre) {
     var m = location.search.match(new RegExp('[?&]' + nombre + '=([^&#]+)'));
@@ -379,7 +390,7 @@
         el('span', { clase: 'etiqueta e-receptor', texto: 'Recibe' }),
         el('b', { texto: d.receptor.nombre }),
         el('span', { clase: 'sub', texto: [d.receptor.titular.toUpperCase() === d.receptor.nombre ? '' : d.receptor.titular,
-          d.receptor.banco, d.receptor.cuenta].filter(Boolean).join(' · ') })
+          d.receptor.cuenta ? opcionesTexto(d.receptor) : ''].filter(Boolean).join(' · ') })
       ]));
       rc.appendChild(controlesReceptor());
     }
@@ -468,7 +479,7 @@
     var nombre = f.nombre.split(' ')[0];
     nombre = nombre.charAt(0) + nombre.slice(1).toLowerCase();
     var falta = Math.max(0, f.esperado - f.pagado);
-    var destino = d.receptor ? ' a ' + d.receptor.titular + (d.receptor.cuenta ? ' (' + [d.receptor.banco, d.receptor.cuenta].filter(Boolean).join(' ') + ')' : '') : '';
+    var destino = d.receptor ? ' a ' + d.receptor.titular + (d.receptor.cuenta ? ' (' + opcionesTexto(d.receptor, ' / ') + ')' : '') : '';
     var cuando = d.hoy > q.plazoFin ? 'El plazo venció el ' + fechaCorta(q.plazoFin) + '.' :
       d.hoy < q.plazoInicio ? 'El plazo es del ' + fechaCorta(q.plazoInicio) + ' al ' + fechaCorta(q.plazoFin) + '.' :
       'El plazo es hasta el ' + fechaCorta(q.plazoFin) + '.';

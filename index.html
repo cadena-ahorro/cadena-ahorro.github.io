@@ -442,10 +442,14 @@
           el('p', { clase: 'sub', texto: 'Consigna a' }),
           el('div', { style: 'font-weight:600', texto: r.titular }),
           hayCuenta
-            ? el('div', { clase: 'fila-flex' }, [
-                el('span', { texto: r.banco + ' · ' + r.cuenta }),
-                el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cuenta, ev.target); } }, 'Copiar')
-              ])
+            ? el('div', {}, [el('div', { clase: 'sub', texto: r.banco })].concat(
+                // Cada número u opción con su propio botón: copiar "3012311506 - 51961461" entero fallaría en el banco
+                (r.cuentas && r.cuentas.length ? r.cuentas : [r.cuenta]).map(function (c) {
+                  return el('div', { clase: 'fila-flex', style: 'margin-top:4px' }, [
+                    el('span', { style: 'font-size:17px', texto: c }),
+                    el('button', { clase: 'chico', onclick: function (ev) { copiar(c, ev.target); } }, 'Copiar')
+                  ]);
+                })))
             : el('div', { clase: 'aviso alerta', style: 'margin-bottom:0' }, [
                 el('div', { clase: 'alerta-titulo', texto: '⚠ Aún no están los datos de la cuenta' }),
                 el('div', { texto: 'Pide los datos a la administradora antes de consignar.' })

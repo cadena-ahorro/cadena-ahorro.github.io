@@ -526,6 +526,8 @@
         res.innerHTML = '';
         if (r.estado === 'verificado_ia') {
           res.appendChild(el('div', { clase: 'aviso ok', texto: 'Listo: tu recibo por ' + plata(r.monto) + ' quedó verificado. ¡Gracias!' }));
+        } else if (r.repetido) {
+          res.appendChild(el('div', { clase: 'aviso info', texto: 'Este recibo ya lo habías subido antes. No hace falta subirlo otra vez: ya está registrado.' }));
         } else {
           res.appendChild(el('div', { clase: 'aviso warn', texto: 'Recibimos tu recibo. La administradora lo va a revisar.' }));
         }
@@ -545,7 +547,14 @@
           reiniciarSubida();
           return cargar();
         }
-        res.appendChild(el('div', { clase: 'aviso mal', texto: 'No se pudo enviar: ' + mensajeError(e) + '. Intenta de nuevo.' }));
+        var msg = mensajeError(e);
+        if (/^Ya habías subido/.test(msg)) {
+          // Mismo recibo de antes: no es un error, no hay que reintentar
+          res.appendChild(el('div', { clase: 'aviso info', texto: msg + '.' }));
+          reiniciarSubida();
+          return;
+        }
+        res.appendChild(el('div', { clase: 'aviso mal', texto: 'No se pudo enviar: ' + msg + '. Intenta de nuevo.' }));
       })
       .then(function () {
         boton.disabled = false;

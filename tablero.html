@@ -503,10 +503,14 @@
       f.esReceptor ? el('span', { clase: 'etiqueta e-receptor', texto: 'Recibe' }) : null,
       el('span', { clase: 'etiqueta e-' + f.estado, texto: TEXTO[f.estado] })
     ]);
+    // Los descartados (rechazados o repetidos) no se muestran de entrada: solo confunden
+    var vigentes = pagos.filter(function (p) { return p.estado !== 'rechazado'; });
+    var descartados = pagos.filter(function (p) { return p.estado === 'rechazado'; });
     var acciones = el('div', { clase: 'fila-flex', style: 'margin-top:8px;padding-left:20px' });
     if (pagos.length) {
+      var cuantos = vigentes.length || pagos.length;
       acciones.appendChild(el('button', { clase: 'chico', onclick: alternar },
-        (abiertos[f.id] ? 'Ocultar' : 'Ver') + ' recibo' + (pagos.length > 1 ? 's (' + pagos.length + ')' : '')));
+        (abiertos[f.id] ? 'Ocultar' : 'Ver') + ' recibo' + (cuantos > 1 ? 's (' + cuantos + ')' : '')));
     }
     if (!AL_DIA[f.estado] && f.estado !== 'por_revisar' && f.estado !== 'antes' && f.celular) {
       acciones.appendChild(el('a', { clase: 'boton chico', target: '_blank', href: 'https://wa.me/' + f.celular + '?text=' + encodeURIComponent(mensajeRecordatorio(f)) }, 'Recordar por WhatsApp'));
@@ -516,7 +520,15 @@
     var cont = el('div', { clase: 'persona' }, [cab, acciones]);
     if (abiertos[f.id] && pagos.length) {
       var det = el('div', { clase: 'detalle' });
-      pagos.forEach(function (p) { det.appendChild(bloquePago(p)); });
+      vigentes.forEach(function (p) { det.appendChild(bloquePago(p)); });
+      if (descartados.length) {
+        var verDesc = abiertos[f.id + ':desc'];
+        det.appendChild(el('div', { clase: 'sub', style: (vigentes.length ? 'border-top:1px solid var(--borde);padding-top:8px;margin-top:10px' : '') }, [
+          (descartados.length === 1 ? '1 recibo descartado (repetido o rechazado) · ' : descartados.length + ' recibos descartados (repetidos o rechazados) · '),
+          el('a', { href: '#', onclick: function (ev) { ev.preventDefault(); abiertos[f.id + ':desc'] = !verDesc; pintarLista(); } }, verDesc ? 'ocultar' : 'ver')
+        ]));
+        if (verDesc) descartados.forEach(function (p) { det.appendChild(bloquePago(p)); });
+      }
       cont.appendChild(det);
     }
     if (abiertos[f.id + ':manual']) cont.appendChild(formManual(f));

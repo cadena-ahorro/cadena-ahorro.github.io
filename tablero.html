@@ -392,7 +392,7 @@
         el('span', { clase: 'etiqueta e-receptor', texto: 'Recibe' }),
         el('b', { texto: d.receptor.nombre }),
         el('span', { clase: 'sub', texto: [d.receptor.titular.toUpperCase() === d.receptor.nombre ? '' : d.receptor.titular,
-          d.receptor.cuenta ? opcionesTexto(d.receptor) : ''].filter(Boolean).join(' · ') })
+          d.receptor.cuenta ? opcionesTexto(d.receptor) : '', d.receptor.cedula ? 'CC ' + d.receptor.cedula : ''].filter(Boolean).join(' · ') })
       ]));
       rc.appendChild(controlesReceptor());
     }

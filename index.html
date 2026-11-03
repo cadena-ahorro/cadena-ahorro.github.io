@@ -461,7 +461,13 @@
                   el('span', { style: 'font-size:17px' }, [el('span', { clase: 'sub', style: 'font-size:15px', texto: o.etiqueta + ': ' }), o.valor]),
                   el('button', { clase: 'chico', onclick: function (ev) { copiar(o.valor, ev.target); } }, 'Copiar')
                 ]);
-              }))
+              }).concat(r.cedula ? [
+                // Solo llega cuando es cuenta de banco: la piden para inscribir la cuenta
+                el('div', { clase: 'fila-flex', style: 'margin-top:4px' }, [
+                  el('span', { style: 'font-size:17px' }, [el('span', { clase: 'sub', style: 'font-size:15px', texto: 'Cédula: ' }), r.cedula]),
+                  el('button', { clase: 'chico', onclick: function (ev) { copiar(r.cedula, ev.target); } }, 'Copiar')
+                ])
+              ] : []))
             : el('div', { clase: 'aviso alerta', style: 'margin-bottom:0' }, [
                 el('div', { clase: 'alerta-titulo', texto: '⚠ Aún no están los datos de la cuenta' }),
                 el('div', { texto: 'Pide los datos a la administradora antes de consignar.' })
